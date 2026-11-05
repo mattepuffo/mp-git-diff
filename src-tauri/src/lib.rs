@@ -49,30 +49,12 @@ pub fn run() {
 
 #[tauri::command]
 async fn git_refresh_branches(dir: String) -> Result<String, String> {
-    let output = {
-        // Linux e macOS
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        {
-            Command::new("git")
-                .args(["branch", "-r"])
-                .current_dir(&dir)
-                .output()
-                .await
-                .map_err(|e| format!("git failed: {}", e))?
-        }
-
-        // Windows tramite WSL
-        #[cfg(target_os = "windows")]
-        {
-            Command::new("wsl")
-                .arg("--cd")
-                .arg(&dir)
-                .args(["git", "branch", "-r"])
-                .output()
-                .await
-                .map_err(|e| format!("wsl git failed: {}", e))?
-        }
-    };
+    let output = Command::new("git")
+        .args(["branch", "-r"])
+        .current_dir(&dir)
+        .output()
+        .await
+        .map_err(|e| format!("git branch failed: {}", e))?;
 
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).to_string());
