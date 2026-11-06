@@ -12,7 +12,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![git_refresh_branches])
+        .invoke_handler(tauri::generate_handler![git_refresh_branches, git_diff])
         .setup(|app| {
             let store = app.store("mpgitdiff_settings.json")?;
             let store_settings: WindowState = store
@@ -49,8 +49,14 @@ pub fn run() {
 
 #[tauri::command]
 async fn git_refresh_branches(dir: String) -> Result<Vec<String>, String> {
+    let _ = Command::new("git")
+        .args(["fetch", "origin"])
+        .current_dir(dir.clone())
+        .output()
+        .await;
+
     let output = Command::new("git")
-        .args(["branch", "-r"])
+        .args(["branch", "-a"])
         .current_dir(&dir)
         .output()
         .await
@@ -62,13 +68,44 @@ async fn git_refresh_branches(dir: String) -> Result<Vec<String>, String> {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    let branches: Vec<String> = stdout
+    let items: Vec<String> = stdout
         .lines()
         .map(|line| line.trim().trim_start_matches("* ").to_string())
         .filter(|line| !line.is_empty() && !line.contains(" -> "))
         .collect();
 
-    println!("{:?}", branches);
+    Ok(items)
+}
 
-    Ok(branches)
+#[tauri::command]
+async fn git_diff(
+    dir: String,
+    branch_from: String,
+    branch_to: String,
+) -> Result<Vec<String>, String> {
+    let output = Command::new("git")
+        .args([
+            "diff",
+            "--name-status",
+            branch_from.as_str(),
+            branch_to.as_str(),
+        ])
+        .current_dir(&dir)
+        .output()
+        .await
+        .map_err(|e| format!("git diff failed: {}", e))?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let items: Vec<String> = stdout
+        .lines()
+        .map(|line| line.trim().trim_start_matches("* ").replace('\t', "-"))
+        .filter(|line| !line.is_empty())
+        .collect();
+
+    Ok(items)
 }
