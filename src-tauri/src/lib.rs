@@ -48,7 +48,7 @@ pub fn run() {
 }
 
 #[tauri::command]
-async fn git_refresh_branches(dir: String) -> Result<String, String> {
+async fn git_refresh_branches(dir: String) -> Result<Vec<String>, String> {
     let output = Command::new("git")
         .args(["branch", "-r"])
         .current_dir(&dir)
@@ -60,9 +60,15 @@ async fn git_refresh_branches(dir: String) -> Result<String, String> {
         return Err(String::from_utf8_lossy(&output.stderr).to_string());
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout);
 
-    println!("{}", stdout);
+    let branches: Vec<String> = stdout
+        .lines()
+        .map(|line| line.trim().trim_start_matches("* ").to_string())
+        .filter(|line| !line.is_empty() && !line.contains(" -> "))
+        .collect();
 
-    Ok(stdout)
+    println!("{:?}", branches);
+
+    Ok(branches)
 }
