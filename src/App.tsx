@@ -199,9 +199,9 @@ function App() {
                            title="Modal Diff: README.md"
                            size="is-fullwidth"
                            repo_path="/home/fermat/PROJECT/learningobjects-agent"
-                           git_ref_old="origin/release/linux"
-                           git_ref_new="origin/release/windows"
-                           file_path="README.md"
+                           git_ref_old="origin/release/linux-dev"
+                           git_ref_new="origin/release/windows-dev"
+                           file_path="src-tauri/Cargo.toml"
             />
         </main>
     );
