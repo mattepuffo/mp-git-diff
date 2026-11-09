@@ -2,9 +2,10 @@ import "bulma/css/bulma.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./App.css";
 
-import {createSignal, For} from "solid-js";
+import {createSignal, For, onMount} from "solid-js";
 import {invoke} from "@tauri-apps/api/core";
 import {message, open} from "@tauri-apps/plugin-dialog";
+import ModalDiffFile from "./ModalDiffFile.tsx";
 
 function App() {
     const [dir, setDir] = createSignal('/home/fermat/PROJECT/learningobjects-agent');
@@ -13,10 +14,30 @@ function App() {
     const [branchFrom, setBranchFrom] = createSignal<string>();
     const [branchTo, setBranchTo] = createSignal<string>();
     const [diffs, setDiffs] = createSignal<string[]>([]);
+    const [isOpenModalDiff, setIsOpenModalDiff] = createSignal(false);
 
-    // onMount(() => {
-    //     test();
-    // });
+    onMount(() => {
+        setIsOpenModalDiff(true);
+    });
+
+    // const test = async () => {
+    //     const [oldContent, newContent] = await Promise.all([
+    //         invoke<string>("get_file_at_ref", {
+    //             repoPath: "/home/fermat/PROJECT/learningobjects-agent",
+    //             gitRef: "origin/release/linux",
+    //             filePath: "README.md",
+    //         }),
+    //         invoke<string>("get_file_at_ref", {
+    //             repoPath: "/home/fermat/PROJECT/learningobjects-agent",
+    //             gitRef: "origin/release/linux-dev",
+    //             filePath: "README.md",
+    //         }),
+    //     ]);
+    //
+    //     console.clear();
+    //     console.log(oldContent);
+    //     console.log(newContent);
+    // }
 
     const chooseDir = async () => {
         const choosed = await open({
@@ -146,6 +167,7 @@ function App() {
                     <table class="table is-primary">
                         <thead>
                             <tr>
+                                <th></th>
                                 <th>Type</th>
                                 <th>File</th>
                                 <th></th>
@@ -158,6 +180,7 @@ function App() {
                                     const expl = it.split('-');
                                     return (
                                         <tr>
+                                            <td><input type="checkbox"/></td>
                                             <td>{expl[0]}</td>
                                             <td>{expl[1]}</td>
                                             <td><i class="fa-regular fa-eye"></i></td>
@@ -170,6 +193,16 @@ function App() {
                 </div>
 
             </div>
+
+            <ModalDiffFile isOpen={isOpenModalDiff()}
+                           onClose={() => setIsOpenModalDiff(false)}
+                           title="Modal Diff: README.md"
+                           size="is-fullwidth"
+                           repo_path="/home/fermat/PROJECT/learningobjects-agent"
+                           git_ref_old="origin/release/linux"
+                           git_ref_new="origin/release/windows"
+                           file_path="README.md"
+            />
         </main>
     );
 }

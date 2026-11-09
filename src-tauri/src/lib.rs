@@ -12,7 +12,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![git_refresh_branches, git_diff])
+        .invoke_handler(tauri::generate_handler![
+            git_refresh_branches,
+            git_diff,
+            get_file_at_ref
+        ])
         .setup(|app| {
             let store = app.store("mpgitdiff_settings.json")?;
             let store_settings: WindowState = store
@@ -108,4 +112,23 @@ async fn git_diff(
         .collect();
 
     Ok(items)
+}
+
+#[tauri::command]
+async fn get_file_at_ref(
+    repo_path: &str,
+    git_ref: &str,
+    file_path: &str,
+) -> Result<String, String> {
+    let output = std::process::Command::new("git")
+        .args(["show", &format!("{}:{}", git_ref, file_path)])
+        .current_dir(repo_path)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
