@@ -201,8 +201,7 @@ function App() {
                            repo_path="/home/fermat/PROJECT/learningobjects-agent"
                            git_ref_old="origin/release/linux-dev"
                            git_ref_new="origin/release/windows-dev"
-                           file_path="src-tauri/Cargo.toml"
-            />
+                           file_path="src-tauri/Cargo.toml"/>
         </main>
     );
 }

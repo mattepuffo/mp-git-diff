@@ -1,5 +1,8 @@
-import {createSignal, createEffect, Show} from "solid-js";
+import {createSignal, createEffect, createMemo, Show} from "solid-js";
 import {invoke} from "@tauri-apps/api/core";
+import {DiffView, DiffModeEnum} from "@git-diff-view/solid";
+import {generateDiffFile} from "@git-diff-view/file";
+import "@git-diff-view/solid/styles/diff-view.css";
 
 interface ModalDiffProps {
     isOpen: boolean;
@@ -13,8 +16,8 @@ interface ModalDiffProps {
 }
 
 export default function ModalDiffFile(props: ModalDiffProps) {
-    const [oldContent, setOldContent] = createSignal<string>("");
-    const [newContent, setNewContent] = createSignal<string>("");
+    const [oldContent, setOldContent] = createSignal("");
+    const [newContent, setNewContent] = createSignal("");
     const [loading, setLoading] = createSignal(false);
     const [error, setError] = createSignal<string | null>(null);
 
@@ -53,21 +56,43 @@ export default function ModalDiffFile(props: ModalDiffProps) {
         }
     };
 
+    const diffFile = createMemo(() => {
+        const old = oldContent();
+        const neu = newContent();
+
+        if (!old && !neu) return null;
+
+        const file = generateDiffFile(
+            props.file_path,
+            old,
+            props.file_path,
+            neu,
+            "",
+            ""
+        );
+
+        file.initTheme("dark");
+        file.init();
+        file.buildSplitDiffLines();
+
+        return file;
+    });
+
     return (
-        <div class={`modal ${props.isOpen ? "is-active" : ""}`}
-             onClick={(e) => e.stopPropagation()}>
+        <div class={`modal ${props.isOpen ? "is-active" : ""}`} onClick={(e) => e.stopPropagation()}>
 
             <div class="modal-background" onClick={props.onClose}></div>
 
-            <div class={`modal-card ${props.size ?? "is-large"}`} style={{width: "90vw", "max-width": "1400px"}}>
+            <div class={`modal-card ${props.size ?? "is-large"}`} style={{width: "95vw", "max-width": "1600px"}}>
+
                 <header class="modal-card-head">
                     <p class="modal-card-title">
-                        {props.title ?? `Diff: ${props.file_path}`}
+                        {props.title ?? `Diff • ${props.file_path}`}
                     </p>
                     <button class="delete" aria-label="close" onClick={props.onClose}/>
                 </header>
 
-                <section class="modal-card-body" style={{padding: "1rem"}}>
+                <section class="modal-card-body" style={{padding: "0", height: "75vh"}}>
                     <Show when={loading()}>
                         <div class="has-text-centered py-6">
                             <p>Caricamento contenuti...</p>
@@ -75,46 +100,18 @@ export default function ModalDiffFile(props: ModalDiffProps) {
                     </Show>
 
                     <Show when={error()}>
-                        <div class="notification is-danger is-light">
+                        <div class="notification is-danger is-light m-4">
                             <strong>Errore:</strong> {error()}
                         </div>
                     </Show>
 
-                    <Show when={!loading() && !error()}>
-                        <div class="columns is-gapless" style={{height: "70vh"}}>
-                            <div class="column is-half" style={{"border-right": "1px solid #dbdbdb"}}>
-                                <div class="has-background-light px-3 py-2 is-size-7 has-text-weight-semibold">
-                                    {props.git_ref_old}
-                                </div>
-                                <pre style={{
-                                    margin: 0,
-                                    padding: "1rem",
-                                    height: "calc(70vh - 40px)",
-                                    overflow: "auto",
-                                    "white-space": "pre",
-                                    "font-size": "13px",
-                                    "line-height": "1.45",
-                                }}>
-                                    {oldContent()}
-                                </pre>
-                            </div>
-
-                            <div class="column is-half">
-                                <div class="has-background-light px-3 py-2 is-size-7 has-text-weight-semibold">
-                                    {props.git_ref_new}
-                                </div>
-                                <pre style={{
-                                    margin: 0,
-                                    padding: "1rem",
-                                    height: "calc(70vh - 40px)",
-                                    overflow: "auto",
-                                    "white-space": "pre",
-                                    "font-size": "13px",
-                                    "line-height": "1.45",
-                                }}>
-                                    {newContent()}
-                                </pre>
-                            </div>
+                    <Show when={!loading() && !error() && diffFile()}>
+                        <div style={{height: "100%", overflow: "auto"}}>
+                            <DiffView diffFile={diffFile()!}
+                                      diffViewMode={DiffModeEnum.Split}
+                                      diffViewTheme="dark"
+                                      diffViewHighlight={true}
+                                      diffViewWrap={true}/>
                         </div>
                     </Show>
                 </section>
@@ -124,7 +121,6 @@ export default function ModalDiffFile(props: ModalDiffProps) {
                         Chiudi
                     </button>
                 </footer>
-
             </div>
         </div>
     );
