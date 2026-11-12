@@ -9,9 +9,9 @@ interface ModalDiffProps {
     onClose: () => void;
     title?: string;
     size?: "is-small" | "is-medium" | "is-large" | "is-fullwidth";
-    repo_path?: string;
-    git_ref_old: string;
-    git_ref_new: string;
+    repo_path?: string | undefined;
+    git_ref_old: string | undefined;
+    git_ref_new: string | undefined;
     file_path: string;
 }
 

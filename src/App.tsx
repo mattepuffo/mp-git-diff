@@ -6,38 +6,30 @@ import {createSignal, For, onMount} from "solid-js";
 import {invoke} from "@tauri-apps/api/core";
 import {message, open} from "@tauri-apps/plugin-dialog";
 import ModalDiffFile from "./ModalDiffFile.tsx";
+import {LazyStore} from "@tauri-apps/plugin-store";
 
 function App() {
-    const [dir, setDir] = createSignal('/home/fermat/PROJECT/learningobjects-agent');
+    const [repoPath, setRepoPath] = createSignal('');
     const [remoteBranches, setRemoteBranches] = createSignal<string[]>([]);
     const [localBranches, setLocalBranches] = createSignal<string[]>([]);
     const [branchFrom, setBranchFrom] = createSignal<string>();
     const [branchTo, setBranchTo] = createSignal<string>();
     const [diffs, setDiffs] = createSignal<string[]>([]);
     const [isOpenModalDiff, setIsOpenModalDiff] = createSignal(false);
+    const [diffFile, setDiffFile] = createSignal<string>('');
+    const [arrFiles, setArrFiles] = createSignal<string[]>([]);
+    const store = new LazyStore('store-git-diff.json');
 
     onMount(() => {
-        setIsOpenModalDiff(true);
+        getChoosedDir();
     });
 
-    // const test = async () => {
-    //     const [oldContent, newContent] = await Promise.all([
-    //         invoke<string>("get_file_at_ref", {
-    //             repoPath: "/home/fermat/PROJECT/learningobjects-agent",
-    //             gitRef: "origin/release/linux",
-    //             filePath: "README.md",
-    //         }),
-    //         invoke<string>("get_file_at_ref", {
-    //             repoPath: "/home/fermat/PROJECT/learningobjects-agent",
-    //             gitRef: "origin/release/linux-dev",
-    //             filePath: "README.md",
-    //         }),
-    //     ]);
-    //
-    //     console.clear();
-    //     console.log(oldContent);
-    //     console.log(newContent);
-    // }
+    const getChoosedDir = async () => {
+        const val = await store.get<{ value: string }>('repo-path');
+        if (val) {
+            setRepoPath(val.value);
+        }
+    }
 
     const chooseDir = async () => {
         const choosed = await open({
@@ -46,12 +38,15 @@ function App() {
         });
 
         if (choosed) {
-            setDir(choosed);
+            setRepoPath(choosed);
+
+            await store.set('repo-path', {value: choosed});
+            await store.save();
         }
     }
 
     const gitBranches = async () => {
-        if (dir().trim().length === 0) {
+        if (repoPath().trim().length === 0) {
             await message('Scegliere una directory!', {
                 title: 'Attenzione',
                 kind: 'error'
@@ -59,7 +54,7 @@ function App() {
         } else {
             try {
                 const items = await invoke<string[]>("git_refresh_branches", {
-                    dir: dir()
+                    dir: repoPath()
                 });
 
                 const remotes = items.filter((it) => it.includes('remote'));
@@ -82,7 +77,7 @@ function App() {
         } else {
             try {
                 const items = await invoke<string[]>("git_diff", {
-                    dir: dir(),
+                    dir: repoPath(),
                     branchFrom: branchFrom(),
                     branchTo: branchTo()
                 });
@@ -90,6 +85,36 @@ function App() {
                 setDiffs(items);
             } catch (error) {
                 console.error("Errore:", error);
+            }
+        }
+    }
+
+    const restore = async () => {
+        if (typeof branchFrom() === 'undefined' || typeof branchTo() === 'undefined') {
+            await message('Scegliere i due branch!', {
+                title: 'Attenzione',
+                kind: 'error'
+            });
+        } else {
+            if (arrFiles().length == 0) {
+                await message('Selezionare uno o più files di cui fare il restore!', {
+                    title: 'Attenzione',
+                    kind: 'error'
+                });
+            } else {
+                // console.clear();
+                // console.table(arrFiles());
+
+                try {
+                    const gitRestore = await invoke<string[]>("git_restore", {
+                        repoPath: repoPath(),
+                        items: arrFiles()
+                    });
+
+                    console.log(gitRestore);
+                } catch (error) {
+                    console.error("Errore:", error);
+                }
             }
         }
     }
@@ -104,8 +129,8 @@ function App() {
                             <div class="control">
                                 <input class="input"
                                        type="text"
-                                       value={dir()}
-                                       onInput={(e) => setDir(e.currentTarget.value)}
+                                       value={repoPath()}
+                                       onInput={(e) => setRepoPath(e.currentTarget.value)}
                                        placeholder="Seleziona una directory..."/>
                             </div>
                         </div>
@@ -162,9 +187,11 @@ function App() {
                 </div>
 
                 <div class="box">
-                    <p class="panel-heading">Diff</p>
+                    <p class="panel-heading">
+                        <button class="button is-danger mr-2" onclick={restore}>Restore</button>
+                    </p>
 
-                    <table class="table is-primary">
+                    <table class="table is-primary mt-5">
                         <thead>
                             <tr>
                                 <th></th>
@@ -177,13 +204,35 @@ function App() {
                         <tbody>
                             <For each={diffs()}>
                                 {(it) => {
-                                    const expl = it.split('-');
+                                    const expl = it.split('||');
+                                    const file = expl[1];
+
                                     return (
                                         <tr>
-                                            <td><input type="checkbox"/></td>
+                                            <td>
+                                                <input type="checkbox"
+                                                       checked={arrFiles().includes(file)}
+                                                       onChange={(e) => {
+                                                           if (e.currentTarget.checked) {
+                                                               setArrFiles(prev =>
+                                                                   prev.includes(file) ? prev : [...prev, file]
+                                                               );
+                                                           } else {
+                                                               setArrFiles(prev => prev.filter(f => f !== file));
+                                                           }
+                                                       }}
+                                                />
+                                            </td>
                                             <td>{expl[0]}</td>
-                                            <td>{expl[1]}</td>
-                                            <td><i class="fa-regular fa-eye"></i></td>
+                                            <td>{file}</td>
+                                            <td>
+                                                <i class="fa-regular fa-eye"
+                                                   onclick={() => {
+                                                       setDiffFile(file);
+                                                       setIsOpenModalDiff(true);
+                                                   }}>
+                                                </i>
+                                            </td>
                                         </tr>
                                     );
                                 }}
@@ -198,10 +247,10 @@ function App() {
                            onClose={() => setIsOpenModalDiff(false)}
                            title="Modal Diff: README.md"
                            size="is-fullwidth"
-                           repo_path="/home/fermat/PROJECT/learningobjects-agent"
-                           git_ref_old="origin/release/linux-dev"
-                           git_ref_new="origin/release/windows-dev"
-                           file_path="src-tauri/Cargo.toml"/>
+                           repo_path={repoPath()}
+                           git_ref_old={branchFrom()}
+                           git_ref_new={branchTo()}
+                           file_path={diffFile()}/>
         </main>
     );
 }

@@ -15,7 +15,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             git_refresh_branches,
             git_diff,
-            get_file_at_ref
+            get_file_at_ref,
+            git_restore
         ])
         .setup(|app| {
             let store = app.store("mpgitdiff_settings.json")?;
@@ -107,9 +108,11 @@ async fn git_diff(
 
     let items: Vec<String> = stdout
         .lines()
-        .map(|line| line.trim().trim_start_matches("* ").replace('\t', "-"))
+        .map(|line| line.trim().trim_start_matches("* ").replace('\t', "||"))
         .filter(|line| !line.is_empty())
         .collect();
+
+    // println!("{:?}", items);
 
     Ok(items)
 }
@@ -131,4 +134,14 @@ async fn get_file_at_ref(
     }
 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+#[tauri::command]
+async fn git_restore(repo_path: &str, items: Vec<String>) -> Result<String, String> {
+    // git restore --source=origin/release/windows-dev -- index.html about.html
+
+    println!("{:?}", repo_path);
+    println!("{:?}", items);
+
+    Ok("".to_string())
 }
