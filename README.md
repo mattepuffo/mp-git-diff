@@ -1,4 +1,4 @@
-# Gui per Git Diff
+# GUI per Git Diff
 
 GUI per gestire e visualizzare le differenze tra branches di un repo Git.
 
