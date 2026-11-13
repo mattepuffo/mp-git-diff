@@ -1,6 +1,8 @@
 # Gui per Git Diff
 
-GUI per gestire per visualizzare le diff tra branch di un repo Git.
+GUI per gestire e visualizzare le differenze tra branches di un repo Git.
+
+E' possibile effettuare il restore dei files selezionati, e visualizzare le differenze dei singoli files side-by-side.
 
 Per creare una build di produzione per Windows/macOS:
 ```bash
