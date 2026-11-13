@@ -137,11 +137,25 @@ async fn get_file_at_ref(
 }
 
 #[tauri::command]
-async fn git_restore(repo_path: &str, items: Vec<String>) -> Result<String, String> {
+async fn git_restore(
+    repo_path: &str,
+    branch: &str,
+    items: Vec<String>,
+) -> Result<String, String> {
     // git restore --source=origin/release/windows-dev -- index.html about.html
 
-    println!("{:?}", repo_path);
-    println!("{:?}", items);
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("restore")
+        .arg(format!("--source={}", branch))
+        .arg("--")
+        .args(&items)
+        .current_dir(repo_path);
 
-    Ok("".to_string())
+    let output = cmd.output().map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }

@@ -63,7 +63,10 @@ function App() {
                 setRemoteBranches(remotes);
                 setLocalBranches(locals);
             } catch (error) {
-                console.error("Errore:", error);
+                await message('Si è verificato un errore: ' + error, {
+                    title: 'Attenzione',
+                    kind: 'error'
+                });
             }
         }
     };
@@ -84,7 +87,10 @@ function App() {
 
                 setDiffs(items);
             } catch (error) {
-                console.error("Errore:", error);
+                await message('Si è verificato un errore: ' + error, {
+                    title: 'Attenzione',
+                    kind: 'error'
+                });
             }
         }
     }
@@ -102,18 +108,22 @@ function App() {
                     kind: 'error'
                 });
             } else {
-                // console.clear();
-                // console.table(arrFiles());
-
                 try {
-                    const gitRestore = await invoke<string[]>("git_restore", {
+                    await invoke<string[]>("git_restore", {
                         repoPath: repoPath(),
+                        branch: branchTo(),
                         items: arrFiles()
                     });
 
-                    console.log(gitRestore);
+                    await message('Operazione avvenuta con successo', {
+                        title: 'Attenzione',
+                        kind: 'info'
+                    });
                 } catch (error) {
-                    console.error("Errore:", error);
+                    await message('Si è verificato un errore: ' + error, {
+                        title: 'Attenzione',
+                        kind: 'error'
+                    });
                 }
             }
         }
