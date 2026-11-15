@@ -23,5 +23,5 @@ npm run tauri build -- --target universal-apple-darwin
 
 #### RELEASES:
 - [Linux AppImage](https://www.mattepuffo.com/DOWNLOAD/mp-git-diff_linux.zip)
-- Windows --> TODO
+- [Windows](https://www.mattepuffo.com/DOWNLOAD/mp-git-diff_windows.zip)
 - macOS --> TODO

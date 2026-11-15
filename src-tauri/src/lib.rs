@@ -1,9 +1,10 @@
 mod window_state;
+mod process_helpers;
 
 use crate::window_state::WindowState;
+use crate::process_helpers::{hidden_command, hidden_command_std};
 use tauri::{Manager, PhysicalSize};
 use tauri_plugin_store::StoreExt;
-use tokio::process::Command;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -54,13 +55,13 @@ pub fn run() {
 
 #[tauri::command]
 async fn git_refresh_branches(dir: String) -> Result<Vec<String>, String> {
-    let _ = Command::new("git")
+    let _ = hidden_command("git")
         .args(["fetch", "origin"])
         .current_dir(dir.clone())
         .output()
         .await;
 
-    let output = Command::new("git")
+    let output = hidden_command("git")
         .args(["branch", "-a"])
         .current_dir(&dir)
         .output()
@@ -88,7 +89,7 @@ async fn git_diff(
     branch_from: String,
     branch_to: String,
 ) -> Result<Vec<String>, String> {
-    let output = Command::new("git")
+    let output = hidden_command("git")
         .args([
             "diff",
             "--name-status",
@@ -123,7 +124,7 @@ async fn get_file_at_ref(
     git_ref: &str,
     file_path: &str,
 ) -> Result<String, String> {
-    let output = std::process::Command::new("git")
+    let output = hidden_command_std("git")
         .args(["show", &format!("{}:{}", git_ref, file_path)])
         .current_dir(repo_path)
         .output()
@@ -137,14 +138,10 @@ async fn get_file_at_ref(
 }
 
 #[tauri::command]
-async fn git_restore(
-    repo_path: &str,
-    branch: &str,
-    items: Vec<String>,
-) -> Result<String, String> {
+async fn git_restore(repo_path: &str, branch: &str, items: Vec<String>) -> Result<String, String> {
     // git restore --source=origin/release/windows-dev -- index.html about.html
 
-    let mut cmd = std::process::Command::new("git");
+    let mut cmd = hidden_command_std("git");
     cmd.arg("restore")
         .arg(format!("--source={}", branch))
         .arg("--")
