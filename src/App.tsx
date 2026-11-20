@@ -255,7 +255,7 @@ function App() {
 
             <ModalDiffFile isOpen={isOpenModalDiff()}
                            onClose={() => setIsOpenModalDiff(false)}
-                           title="Modal Diff: README.md"
+                           title={diffFile()}
                            size="is-fullwidth"
                            repo_path={repoPath()}
                            git_ref_old={branchFrom()}
